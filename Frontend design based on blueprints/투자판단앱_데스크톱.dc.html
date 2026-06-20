@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.tjscroll::-webkit-scrollbar{width:8px;height:8px}
+.tjscroll::-webkit-scrollbar-thumb{background:#D8DDE3;border-radius:4px}
+.tjscroll::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="min-height:100vh;width:max-content;min-width:100%;background:#E4E8ED;display:flex;align-items:flex-start;justify-content:center;padding:28px;box-sizing:border-box;font-family:'Pretendard',system-ui,-apple-system,sans-serif;color:#191F28">
+  <div style="flex:none;width:1440px;height:920px;background:#F4F6F8;border-radius:16px;box-shadow:0 24px 60px rgba(20,30,50,.16),0 4px 12px rgba(20,30,50,.05);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.05)">
+
+    <!-- ===== TOP BAR ===== -->
+    <div style="flex:none;height:62px;background:#fff;border-bottom:1px solid #ECEFF2;display:flex;align-items:center;padding:0 22px;gap:22px">
+      <div style="display:flex;align-items:center;gap:9px;flex:none">
+        <div style="width:26px;height:26px;border-radius:8px;background:#3182F6;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 11.5L6 7L9 9.5L14 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="4" r="1.6" fill="#fff"/></svg></div>
+        <span style="font-size:16px;font-weight:800;letter-spacing:-.4px">투자판단</span>
+      </div>
+      <div style="flex:1;max-width:440px;display:flex;align-items:center;gap:9px;background:#F2F4F6;border-radius:11px;padding:10px 14px">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex:none"><circle cx="7" cy="7" r="4.5" stroke="#8B95A1" stroke-width="1.6"/><line x1="10.6" y1="10.6" x2="14" y2="14" stroke="#8B95A1" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input placeholder="종목명 · 티커 검색  (예: NVDA, 005930, 애플)" onKeyDown="{{ onSearchKey }}" style="border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:#191F28;width:100%" />
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex:none;color:#8B95A1;font-size:12.5px;font-weight:500">
+        <span style="width:7px;height:7px;border-radius:50%;background:#15B47B;display:inline-block"></span>실시간 연결됨 · 일봉 기준
+      </div>
+    </div>
+
+    <!-- ===== BODY ===== -->
+    <div style="flex:1;display:flex;min-height:0">
+
+      <!-- ========== SIDEBAR / WATCHLIST ========== -->
+      <div style="flex:none;width:312px;background:#fff;border-right:1px solid #ECEFF2;display:flex;flex-direction:column;min-height:0">
+        <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-.3px">관심 종목 <span style="color:#B0B8C1;font-weight:600">{{ favCount }}</span></span>
+          <button onClick="{{ cycleSort }}" style="border:none;background:#F2F4F6;border-radius:9px;padding:7px 11px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:#4E5968;display:flex;align-items:center;gap:5px">{{ sortLabel }} <span style="color:#8B95A1;font-size:9px">▾</span></button>
+        </div>
+        <div class="tjscroll" style="flex:1;overflow-y:auto;padding:0 10px 14px">
+          <sc-for list="{{ favRows }}" as="r" hint-placeholder-count="5">
+            <div onClick="{{ r.open }}" style="display:flex;align-items:center;gap:11px;padding:12px 10px;border-radius:12px;cursor:pointer;background:{{ r.rowBg }};margin-bottom:2px;transition:background .12s" style-hover="background:#F2F4F6">
+              <div style="flex:none;width:38px;height:38px;border-radius:11px;background:{{ r.gradeBg }};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:{{ r.gradeColor }}">{{ r.gradeShort }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:14px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                  <span style="font-size:12px;color:{{ r.trendColor }};font-weight:700;flex:none">{{ r.trendArrow }}</span>
+                </div>
+                <div style="font-size:11.5px;color:#8B95A1;margin-top:2px;font-variant-numeric:tabular-nums">{{ r.ticker }}</div>
+              </div>
+              <div style="text-align:right;flex:none">
+                <div style="font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums">{{ r.priceStr }}</div>
+                <div style="font-size:11.5px;font-weight:700;color:{{ r.changeColor }};margin-top:2px;font-variant-numeric:tabular-nums">{{ r.changeStr }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:none;padding:12px 18px;border-top:1px solid #F2F4F6;font-size:10.5px;line-height:1.55;color:#B0B8C1">등급은 추세·타이밍·지표 신호의 일치 정도이며 투자 권유가 아닙니다.</div>
+      </div>
+
+      <!-- ========== CENTER / CHARTS ========== -->
+      <div class="tjscroll" style="flex:1;overflow-y:auto;min-width:0;padding:22px 24px">
+
+        <!-- identity + price -->
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px">
+          <div>
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font-size:27px;font-weight:800;letter-spacing:-.6px;white-space:nowrap">{{ s.name }}</span>
+              <span style="font-size:11.5px;font-weight:600;color:#8B95A1;background:#fff;border:1px solid #E5E8EB;border-radius:7px;padding:3px 8px">{{ s.market }}</span>
+              <button onClick="{{ toggleFav }}" style="border:none;background:transparent;cursor:pointer;font-size:21px;line-height:1;color:{{ starColor }};padding:2px 4px">{{ starChar }}</button>
+            </div>
+            <div style="font-size:13px;color:#8B95A1;margin-top:4px;font-variant-numeric:tabular-nums">{{ s.ticker }}</div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:12px">
+            <span style="font-size:38px;font-weight:800;letter-spacing:-1.2px;font-variant-numeric:tabular-nums;line-height:1">{{ priceStr }}</span>
+            <span style="font-size:18px;font-weight:700;color:{{ changeColor }};font-variant-numeric:tabular-nums">{{ changeStr }}</span>
+          </div>
+        </div>
+
+        <!-- main chart -->
+        <div style="background:#fff;border-radius:18px;padding:20px 20px 16px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04);margin-bottom:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:16px;font-weight:700;letter-spacing:-.3px">가격 · 일목균형표 · 볼린저밴드</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center">
+              <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:9px;border-radius:2px;background:rgba(240,68,82,.16);display:inline-block"></span>양운/음운</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px solid #9B6DE3;display:inline-block"></span>기준선</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px solid #F5A623;display:inline-block"></span>전환선</span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px dashed #B0B8C1;display:inline-block"></span>볼린저</span>
+              <span style="font-size:11.5px;color:#B0B8C1;font-weight:500;padding-left:4px">일봉 · 1Y</span>
+            </div>
+          </div>
+          <canvas ref="{{ mainRef }}" style="display:block;width:100%;height:380px"></canvas>
+        </div>
+
+        <!-- RSI + MACD row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div style="background:#fff;border-radius:18px;padding:18px 18px 14px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:14.5px;font-weight:700">RSI <span style="font-weight:500;color:#B0B8C1;font-size:12px">(14)</span></span>
+              <span style="font-size:14px;font-weight:800;color:{{ rsiColor }};font-variant-numeric:tabular-nums">{{ rsiVal }}</span>
+            </div>
+            <canvas ref="{{ rsiRef }}" style="display:block;width:100%;height:118px"></canvas>
+          </div>
+          <div style="background:#fff;border-radius:18px;padding:18px 18px 14px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:14.5px;font-weight:700">MACD <span style="font-weight:500;color:#B0B8C1;font-size:12px">(12·26·9)</span></span>
+              <span style="font-size:13px;font-weight:700;color:{{ macdColor }};font-variant-numeric:tabular-nums">{{ macdState }}</span>
+            </div>
+            <canvas ref="{{ macdRef }}" style="display:block;width:100%;height:118px"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== RIGHT RAIL / ANALYSIS ========== -->
+      <div class="tjscroll" style="flex:none;width:372px;background:#fff;border-left:1px solid #ECEFF2;overflow-y:auto;padding:22px 22px 26px;display:flex;flex-direction:column;gap:16px;min-height:0">
+
+        <!-- 종합평가 -->
+        <div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:14px;color:#4E5968">종합 평가</div>
+          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px">
+            <div style="position:relative;flex:none;width:108px;height:108px">
+              <canvas ref="{{ scoreRef }}" style="display:block;width:108px;height:108px"></canvas>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-size:30px;font-weight:800;letter-spacing:-1px;color:{{ gradeColor }};font-variant-numeric:tabular-nums;line-height:1">{{ gradeScore }}</span>
+                <span style="font-size:11px;color:#B0B8C1;font-weight:600;margin-top:1px">/ 100</span>
+              </div>
+            </div>
+            <div style="flex:1">
+              <span style="display:inline-flex;align-items:center;background:{{ gradeColor }};color:#fff;font-size:15px;font-weight:800;letter-spacing:-.2px;padding:8px 16px;border-radius:12px;white-space:nowrap">{{ grade }}</span>
+              <div style="font-size:12.5px;color:#8B95A1;line-height:1.5;margin-top:12px">{{ gradeDesc }}</div>
+            </div>
+          </div>
+
+          <!-- trend gauge -->
+          <div style="margin-bottom:13px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <span style="font-size:13px;color:#4E5968;font-weight:500;white-space:nowrap">추세 <span style="color:{{ trendColor }};font-weight:700">{{ trendArrow }} {{ trendLabel }}</span></span>
+              <span style="font-size:12.5px;font-weight:700;color:#4E5968;font-variant-numeric:tabular-nums">신뢰 {{ confVal }}%</span>
+            </div>
+            <div style="height:7px;border-radius:4px;background:#F2F4F6;overflow:hidden"><div style="height:100%;border-radius:4px;background:{{ trendColor }};width:{{ confPct }};transition:width .5s ease"></div></div>
+          </div>
+          <!-- timing gauge -->
+          <div style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <span style="font-size:13px;color:#4E5968;font-weight:500;white-space:nowrap">타이밍 <span style="color:{{ timingColor }};font-weight:700">{{ timingAction }}</span></span>
+              <span style="font-size:12.5px;font-weight:700;color:#4E5968;font-variant-numeric:tabular-nums">{{ timingVal }}%</span>
+            </div>
+            <div style="height:7px;border-radius:4px;background:#F2F4F6;overflow:hidden"><div style="height:100%;border-radius:4px;background:{{ timingColor }};width:{{ timingPct }};transition:width .5s ease"></div></div>
+          </div>
+          <!-- price zones -->
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;background:#FDECEE;border-radius:13px;padding:12px 14px">
+              <div style="font-size:11.5px;color:#F04452;font-weight:600;margin-bottom:4px">추천 전환 예상가</div>
+              <div style="font-size:16px;font-weight:800;color:#191F28;font-variant-numeric:tabular-nums">{{ buyStr }}</div>
+            </div>
+            <div style="flex:1;background:#EAF2FE;border-radius:13px;padding:12px 14px">
+              <div style="font-size:11.5px;color:#3182F6;font-weight:600;margin-bottom:4px">과열 경계 예상가</div>
+              <div style="font-size:16px;font-weight:800;color:#191F28;font-variant-numeric:tabular-nums">{{ overheatStr }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:#F2F4F6"></div>
+
+        <!-- 지표 신호 요약 -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:700;letter-spacing:-.2px;color:#4E5968">지표 신호 요약</span>
+            <span style="font-size:11.5px;font-weight:700;color:{{ consensusColor }};background:{{ consensusBg }};padding:3px 9px;border-radius:7px;white-space:nowrap">{{ consensusLabel }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <sc-for list="{{ signals }}" as="sig" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-bottom:1px solid {{ sig.line }}">
+                <div>
+                  <div style="font-size:13.5px;font-weight:600;color:#191F28">{{ sig.name }}</div>
+                  <div style="font-size:11.5px;color:#B0B8C1;margin-top:2px">{{ sig.detail }}</div>
+                </div>
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:54px;font-size:12px;font-weight:700;color:{{ sig.color }};background:{{ sig.bg }};padding:5px 10px;border-radius:8px;white-space:nowrap">{{ sig.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="height:1px;background:#F2F4F6"></div>
+
+        <!-- 상세 정보 -->
+        <div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:14px;color:#4E5968">상세 정보</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 14px">
+            <sc-for list="{{ detailRows }}" as="row" hint-placeholder-count="8">
+              <div>
+                <div style="font-size:11.5px;color:#8B95A1;margin-bottom:4px">{{ row.label }}</div>
+                <div style="font-size:14.5px;font-weight:700;color:#191F28;font-variant-numeric:tabular-nums">{{ row.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="font-size:10.5px;line-height:1.6;color:#B0B8C1;padding-top:4px">본 분석은 기술적 지표의 기계적 계산 결과이며, 투자 권유나 수익 보장이 아닙니다. 모든 판단과 책임은 본인에게 있습니다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.mainRef = React.createRef();
+    this.rsiRef = React.createRef();
+    this.macdRef = React.createRef();
+    this.scoreRef = React.createRef();
+    this._cache = {};
+    this.stocks = {
+      '005930': {ticker:'005930.KS', name:'삼성전자', market:'KOSPI', kr:true, price:73000, change:-1.2,
+        trend:{label:'횡보',confidence:62}, timing:{action:'매수 관심',score:71},
+        ev:{grade:'추천',score:68,buy:68500,overheat:81000}, rsi:41.2, seed:11, bias:'flat',
+        detail:{cap:'435.8조',per:'13.2',pbr:'1.32',div:'2.1%',vol:'12,840,000',hi:'88,800',lo:'68,200',fhi:'82,400',sec:'반도체'}},
+      'NVDA': {ticker:'NVDA', name:'엔비디아', market:'NASDAQ', kr:false, price:131.26, change:2.1,
+        trend:{label:'상승추세',confidence:84}, timing:{action:'매수',score:78},
+        ev:{grade:'강한 추천',score:86,buy:124.00,overheat:152.00}, rsi:63.5, seed:7, bias:'up',
+        detail:{cap:'$3.21T',per:'54.8',pbr:'48.2',div:'0.03%',vol:'231,400,000',hi:'$140.76',lo:'$66.25',fhi:'$150.00',sec:'반도체'}},
+      'AAPL': {ticker:'AAPL', name:'애플', market:'NASDAQ', kr:false, price:212.44, change:-0.6,
+        trend:{label:'상승추세',confidence:71}, timing:{action:'홀딩',score:58},
+        ev:{grade:'추천',score:70,buy:201.50,overheat:233.00}, rsi:55.1, seed:21, bias:'up',
+        detail:{cap:'$3.18T',per:'32.9',pbr:'46.1',div:'0.45%',vol:'48,200,000',hi:'$237.49',lo:'$164.08',fhi:'$240.00',sec:'IT 하드웨어'}},
+      '247540': {ticker:'247540.KQ', name:'에코프로비엠', market:'KOSDAQ', kr:true, price:118300, change:-3.4,
+        trend:{label:'하락추세',confidence:77}, timing:{action:'관망',score:24},
+        ev:{grade:'비추천',score:31,buy:99000,overheat:138000}, rsi:33.8, seed:33, bias:'down',
+        detail:{cap:'11.6조',per:'—',pbr:'3.10',div:'0.0%',vol:'1,920,000',hi:'248,000',lo:'104,500',fhi:'132,000',sec:'2차전지'}},
+      '035720': {ticker:'035720.KS', name:'카카오', market:'KOSPI', kr:true, price:39850, change:0.4,
+        trend:{label:'횡보',confidence:55}, timing:{action:'중립',score:48},
+        ev:{grade:'보류',score:52,buy:36500,overheat:45000}, rsi:49.2, seed:5, bias:'flat',
+        detail:{cap:'17.7조',per:'41.5',pbr:'1.08',div:'0.3%',vol:'2,410,000',hi:'62,700',lo:'36,100',fhi:'44,200',sec:'인터넷'}},
+    };
+    this._prevTicker='NVDA';
+    this.state = {
+      ticker:'NVDA',
+      favorites:['005930','NVDA','AAPL','247540','035720'],
+      sortBy:'grade', animScore:this.stocks['NVDA'].ev.score, animPrice:this.stocks['NVDA'].price,
+    };
+  }
+
+  componentDidMount(){
+    try{ const f=JSON.parse(localStorage.getItem('tj_favs')); if(Array.isArray(f)&&f.length) this.setState({favorites:f}); }catch(e){}
+    this.animateNumbers(); this.scheduleDraw();
+  }
+  componentDidUpdate(){
+    if(this._prevTicker!==this.state.ticker){ this.animateNumbers(); this.scheduleDraw(); }
+    this._prevTicker=this.state.ticker;
+  }
+  scheduleDraw(){
+    let tries=0;
+    const attempt=()=>{ const c=this.mainRef.current;
+      if(c && c.clientWidth>0){ this.draw(); }
+      else if(tries++<25){ setTimeout(attempt,30); } };
+    setTimeout(attempt,0);
+  }
+  animateNumbers(){
+    const st=this.stocks[this.state.ticker];
+    clearInterval(this._tick); clearTimeout(this._end);
+    const toS=st.ev.score, toP=st.price, fromS=0, fromP=toP*0.93, dur=620, t0=Date.now();
+    this.setState({animScore:fromS, animPrice:fromP});
+    this._tick=setInterval(()=>{
+      const p=Math.min(1,(Date.now()-t0)/dur), e=1-Math.pow(1-p,3);
+      this.setState({animScore:Math.round(fromS+(toS-fromS)*e), animPrice:fromP+(toP-fromP)*e});
+      this.drawScore(this.state.animScore, st.ev.grade);
+      if(p>=1) clearInterval(this._tick);
+    },24);
+    this._end=setTimeout(()=>{ clearInterval(this._tick); this.setState({animScore:toS, animPrice:toP}); this.drawScore(toS,st.ev.grade); }, dur+90);
+  }
+
+  // ---------- helpers ----------
+  fmt(v,kr){ return kr ? Math.round(v).toLocaleString('en-US') : v.toFixed(2); }
+  priceStr(v,kr){ return kr ? this.fmt(v,true)+'원' : '$'+this.fmt(v,false); }
+  changeStr(c){ const a=Math.abs(c).toFixed(1); return (c>=0?'▲ ':'▼ ')+a+'%'; }
+  semColor(c){ return c>=0 ? '#F04452' : '#3182F6'; }
+  gradeColor(g){ return {'강한 추천':'#E0303C','추천':'#F04452','보류':'#8B95A1','비추천':'#3182F6','강한 비추천':'#1F63D6'}[g]||'#8B95A1'; }
+  gradeBg(g){ return {'강한 추천':'#FBE3E5','추천':'#FDECEE','보류':'#F2F4F6','비추천':'#EAF2FE','강한 비추천':'#E4EDFC'}[g]||'#F2F4F6'; }
+  gradeShort(g){ return {'강한 추천':'강추','추천':'추천','보류':'보류','비추천':'비추','강한 비추천':'강비'}[g]||g; }
+  gradeDesc(g){ return {'강한 추천':'추세·타이밍·지표 신호가 강하게 일치합니다.','추천':'다수 지표가 우호적으로 정렬되어 있습니다.','보류':'신호가 혼재되어 방향성이 불분명합니다.','비추천':'다수 지표가 부정적으로 정렬되어 있습니다.','강한 비추천':'추세·지표 신호가 강하게 하방을 가리킵니다.'}[g]||''; }
+  trendColor(l){ return l==='상승추세'?'#F04452':l==='하락추세'?'#3182F6':'#8B95A1'; }
+  trendArrow(l){ return l==='상승추세'?'↗':l==='하락추세'?'↘':'→'; }
+
+  // ---------- indicators (same engine as mobile) ----------
+  series(key){
+    if(this._cache[key]) return this._cache[key];
+    const st=this.stocks[key]; let a=(st.seed*1103515245+12345)>>>0;
+    const rnd=()=>{ a=(a*1664525+1013904223)>>>0; return a/4294967296; };
+    const n=210, drift= st.bias==='up'?0.0018: st.bias==='down'?-0.0019:0.0002;
+    let v=100, closes=[];
+    for(let i=0;i<n;i++){ v=v*(1+drift+(rnd()-0.5)*0.028); closes.push(v); }
+    const scale=st.price/closes[n-1]; closes=closes.map(c=>c*scale);
+    const cd=[];
+    for(let i=0;i<n;i++){ const o= i? closes[i-1] : closes[0]*(1+(rnd()-0.5)*0.01);
+      const c=closes[i]; const hi=Math.max(o,c)*(1+rnd()*0.013), lo=Math.min(o,c)*(1-rnd()*0.013);
+      cd.push({o,h:hi,l:lo,c}); }
+    const out={cd,closes,n};
+    this._cache[key]=out; return out;
+  }
+  sma(arr,p){ const r=Array(arr.length).fill(null); let s=0; for(let i=0;i<arr.length;i++){ s+=arr[i]; if(i>=p)s-=arr[i-p]; if(i>=p-1)r[i]=s/p; } return r; }
+  ema(arr,p){ const r=Array(arr.length).fill(null); const k=2/(p+1); let prev=null; for(let i=0;i<arr.length;i++){ if(arr[i]==null){continue;} prev= prev==null? arr[i] : arr[i]*k+prev*(1-k); r[i]=prev; } return r; }
+  std(arr,p){ const r=Array(arr.length).fill(null); for(let i=p-1;i<arr.length;i++){ let m=0; for(let j=i-p+1;j<=i;j++)m+=arr[j]; m/=p; let s=0; for(let j=i-p+1;j<=i;j++)s+=(arr[j]-m)**2; r[i]=Math.sqrt(s/p);} return r; }
+  rsiArr(c,p){ const r=Array(c.length).fill(null); let ag=0,al=0; for(let i=1;i<c.length;i++){ const ch=c[i]-c[i-1]; const g=Math.max(ch,0),l=Math.max(-ch,0); if(i<=p){ ag+=g; al+=l; if(i===p){ ag/=p; al/=p; r[i]=100-100/(1+ag/(al||1e-9)); } } else { ag=(ag*(p-1)+g)/p; al=(al*(p-1)+l)/p; r[i]=100-100/(1+ag/(al||1e-9)); } } return r; }
+  hl(cd,p){ const r=Array(cd.length).fill(null); for(let i=p-1;i<cd.length;i++){ let hi=-1e18,lo=1e18; for(let j=i-p+1;j<=i;j++){ hi=Math.max(hi,cd[j].h); lo=Math.min(lo,cd[j].l);} r[i]=(hi+lo)/2; } return r; }
+
+  indicators(key){
+    const {cd,closes,n}=this.series(key);
+    const mid=this.sma(closes,20), sd=this.std(closes,20);
+    const bbU=closes.map((_,i)=> mid[i]!=null? mid[i]+2*sd[i]:null);
+    const bbL=closes.map((_,i)=> mid[i]!=null? mid[i]-2*sd[i]:null);
+    const conv=this.hl(cd,9), base=this.hl(cd,26), b52=this.hl(cd,52);
+    const spanA=conv.map((_,i)=> conv[i]!=null&&base[i]!=null?(conv[i]+base[i])/2:null);
+    const spanB=b52;
+    const e12=this.ema(closes,12), e26=this.ema(closes,26);
+    const macd=closes.map((_,i)=> e12[i]!=null&&e26[i]!=null? e12[i]-e26[i]:null);
+    const sig=this.ema(macd.map(x=>x==null?0:x),9).map((x,i)=> macd[i]==null?null:x);
+    const hist=macd.map((m,i)=> m!=null&&sig[i]!=null? m-sig[i]:null);
+    const rsi=this.rsiArr(closes,14);
+    const sma20=mid;
+    return {cd,closes,n,mid,sma20,bbU,bbL,conv,base,spanA,spanB,macd,sig,hist,rsi};
+  }
+
+  // derive discrete signals for the summary panel
+  computeSignals(key){
+    const I=this.indicators(key); const n=I.n; const li=n-1;
+    const price=I.closes[li];
+    const POS={label:'매수',color:'#F04452',bg:'#FDECEE',w:1}, NEG={label:'매도',color:'#3182F6',bg:'#EAF2FE',w:-1}, NEU={label:'중립',color:'#8B95A1',bg:'#F2F4F6',w:0};
+    const out=[];
+    // 일목 구름
+    const sa=I.spanA[li-26]??I.spanA[li], sb=I.spanB[li-26]??I.spanB[li];
+    let cl; const top=Math.max(sa,sb), bot=Math.min(sa,sb);
+    if(price>top) cl={...POS,detail:'주가가 구름대 위 — 양호'};
+    else if(price<bot) cl={...NEG,detail:'주가가 구름대 아래 — 약세'};
+    else cl={...NEU,detail:'주가가 구름대 내부 — 혼조'};
+    out.push({name:'일목균형표',...cl});
+    // RSI
+    const rv=I.rsi[li];
+    let rs; if(rv>=70) rs={...NEG,detail:'과매수 구간 ('+rv.toFixed(0)+')'};
+    else if(rv<=30) rs={...POS,detail:'과매도 구간 ('+rv.toFixed(0)+')'};
+    else rs={...NEU,detail:'중립 구간 ('+rv.toFixed(0)+')'};
+    out.push({name:'RSI (14)',...rs});
+    // MACD
+    const h=I.hist[li], hp=I.hist[li-1];
+    let ms; if(h>0&&h>=hp) ms={...POS,detail:'시그널 상회 · 모멘텀 확대'};
+    else if(h<0&&h<=hp) ms={...NEG,detail:'시그널 하회 · 모멘텀 둔화'};
+    else ms={...NEU,detail:'히스토그램 방향 전환 구간'};
+    out.push({name:'MACD',...ms});
+    // 볼린저
+    const bw=(I.bbU[li]-I.bbL[li])||1; const posb=(price-I.bbL[li])/bw;
+    let bs; if(posb>0.85) bs={...NEG,detail:'상단 밴드 접근 — 과열'};
+    else if(posb<0.15) bs={...POS,detail:'하단 밴드 접근 — 반등 기대'};
+    else bs={...NEU,detail:'밴드 중앙 — 추세 진행'};
+    out.push({name:'볼린저밴드',...bs});
+    // 이동평균 20
+    const m20=I.sma20[li];
+    let mas; if(price>m20*1.005) mas={...POS,detail:'20일선 상회'};
+    else if(price<m20*0.995) mas={...NEG,detail:'20일선 하회'};
+    else mas={...NEU,detail:'20일선 근접'};
+    out.push({name:'이동평균 (20)',...mas});
+    return out;
+  }
+
+  // ---------- canvas ----------
+  setupCanvas(ref){ const c=ref.current; if(!c) return null; const w=c.clientWidth||360, h=c.clientHeight||120; const dpr=window.devicePixelRatio||1; c.width=w*dpr; c.height=h*dpr; const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h); return {ctx,w,h}; }
+
+  draw(){
+    const key=this.state.ticker; const I=this.indicators(key);
+    this.drawMain(I); this.drawRsi(I); this.drawMacd(I);
+    this.drawScore(this.state.animScore, this.stocks[key].ev.grade);
+  }
+
+  drawScore(score, grade){
+    const s=this.setupCanvas(this.scoreRef); if(!s) return; const {ctx,w,h}=s;
+    const cx=w/2, cy=h/2, r=w/2-9, lw=9;
+    ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.lineWidth=lw; ctx.strokeStyle='#F2F4F6'; ctx.stroke();
+    const frac=Math.max(0,Math.min(1,score/100));
+    const a0=-Math.PI/2, a1=a0+Math.PI*2*frac;
+    ctx.beginPath(); ctx.arc(cx,cy,r,a0,a1); ctx.lineWidth=lw; ctx.strokeStyle=this.gradeColor(grade); ctx.stroke();
+  }
+
+  drawMain(I){
+    const s=this.setupCanvas(this.mainRef); if(!s) return; const {ctx,w,h}=s;
+    const n=I.n, vis=96, start=n-vis, future=24, slots=vis+future;
+    const padL=8,padR=58,padT=10,padB=22, pw=w-padL-padR, ph=h-padT-padB, step=pw/slots;
+    let mn=1e18,mx=-1e18;
+    for(let i=start;i<n;i++){ mn=Math.min(mn,I.cd[i].l, I.bbL[i]??1e18); mx=Math.max(mx,I.cd[i].h, I.bbU[i]??-1e18); }
+    for(let k=0;k<slots;k++){ const vi=start+k-26; if(vi>=0&&vi<n){ if(I.spanA[vi]!=null){mn=Math.min(mn,I.spanA[vi]);mx=Math.max(mx,I.spanA[vi]);} if(I.spanB[vi]!=null){mn=Math.min(mn,I.spanB[vi]);mx=Math.max(mx,I.spanB[vi]);} } }
+    const pad=(mx-mn)*0.06; mn-=pad; mx+=pad;
+    const X=k=>padL+k*step+step/2, Y=p=>padT+(1-(p-mn)/(mx-mn))*ph;
+    const st=this.stocks[this.state.ticker];
+    // grid + y axis labels
+    ctx.font='11px Pretendard, sans-serif'; ctx.textBaseline='middle';
+    for(let g=0;g<=4;g++){ const val=mn+(mx-mn)*g/4; const y=Y(val);
+      ctx.strokeStyle='#F4F6F8'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+      ctx.fillStyle='#B0B8C1'; ctx.textAlign='left'; ctx.fillText(this.fmt(val,st.kr), w-padR+6, y); }
+    // cloud
+    for(let k=0;k<slots-1;k++){ const vi=start+k-26, vi2=vi+1; if(vi<0||vi2>=n) continue; if(I.spanA[vi]==null||I.spanB[vi]==null||I.spanA[vi2]==null||I.spanB[vi2]==null) continue;
+      const up=(I.spanA[vi]+I.spanA[vi2])>=(I.spanB[vi]+I.spanB[vi2]);
+      ctx.beginPath(); ctx.moveTo(X(k),Y(I.spanA[vi])); ctx.lineTo(X(k+1),Y(I.spanA[vi2])); ctx.lineTo(X(k+1),Y(I.spanB[vi2])); ctx.lineTo(X(k),Y(I.spanB[vi])); ctx.closePath();
+      ctx.fillStyle= up?'rgba(240,68,82,.12)':'rgba(49,130,246,.12)'; ctx.fill(); }
+    const line=(arr,off,color,wd)=>{ ctx.beginPath(); ctx.lineWidth=wd; ctx.strokeStyle=color; let started=false; for(let k=0;k<slots;k++){ const vi=start+k-off; if(vi<0||vi>=n||arr[vi]==null){started=false;continue;} const x=X(k),y=Y(arr[vi]); if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);} ctx.stroke(); };
+    line(I.spanA,26,'rgba(240,68,82,.45)',1); line(I.spanB,26,'rgba(49,130,246,.45)',1);
+    const cline=(arr,color,wd,dash)=>{ ctx.beginPath(); ctx.lineWidth=wd; ctx.strokeStyle=color; ctx.setLineDash(dash||[]); let started=false; for(let i=start;i<n;i++){ if(arr[i]==null){started=false;continue;} const x=X(i-start),y=Y(arr[i]); if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);} ctx.stroke(); ctx.setLineDash([]); };
+    cline(I.bbU,'rgba(176,184,193,.7)',1); cline(I.bbL,'rgba(176,184,193,.7)',1); cline(I.mid,'#C8CDD3',1,[3,3]);
+    cline(I.conv,'#F5A623',1.4); cline(I.base,'#9B6DE3',1.4);
+    // candles
+    const cw=Math.max(2.6,step*0.62);
+    for(let i=start;i<n;i++){ const c=I.cd[i]; const x=X(i-start); const up=c.c>=c.o; const col=up?'#F04452':'#3182F6';
+      ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,Y(c.h)); ctx.lineTo(x,Y(c.l)); ctx.stroke();
+      const yo=Y(c.o),yc=Y(c.c); const top=Math.min(yo,yc), bh=Math.max(1.5,Math.abs(yc-yo));
+      ctx.fillRect(x-cw/2,top,cw,bh); }
+    // current price line + tag
+    const last=I.closes[n-1], ly=Y(last); const lc=this.semColor(st.change);
+    ctx.setLineDash([4,3]); ctx.strokeStyle=lc; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,ly); ctx.lineTo(w-padR,ly); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=lc; ctx.fillRect(w-padR,ly-9,padR,18); ctx.fillStyle='#fff'; ctx.font='10.5px Pretendard, sans-serif'; ctx.textAlign='center'; ctx.fillText(this.fmt(last,st.kr), w-padR/2, ly);
+  }
+
+  drawRsi(I){
+    const s=this.setupCanvas(this.rsiRef); if(!s) return; const {ctx,w,h}=s;
+    const n=I.n, vis=96, start=n-vis, padL=8,padR=30,padT=8,padB=8, pw=w-padL-padR, ph=h-padT-padB, step=pw/vis;
+    const Y=v=>padT+(1-v/100)*ph, X=i=>padL+i*step+step/2;
+    ctx.font='10px Pretendard, sans-serif'; ctx.textBaseline='middle'; ctx.textAlign='left';
+    ctx.setLineDash([3,3]); ctx.lineWidth=1;
+    ctx.strokeStyle='rgba(240,68,82,.32)'; ctx.beginPath(); ctx.moveTo(padL,Y(70)); ctx.lineTo(w-padR,Y(70)); ctx.stroke(); ctx.fillStyle='#D9A0A6'; ctx.fillText('70', w-padR+5, Y(70));
+    ctx.strokeStyle='rgba(49,130,246,.32)'; ctx.beginPath(); ctx.moveTo(padL,Y(30)); ctx.lineTo(w-padR,Y(30)); ctx.stroke(); ctx.fillStyle='#9DB8E0'; ctx.fillText('30', w-padR+5, Y(30));
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.lineWidth=1.8; ctx.strokeStyle='#6B7684'; let started=false;
+    for(let i=start;i<n;i++){ if(I.rsi[i]==null){started=false;continue;} const x=X(i-start),y=Y(I.rsi[i]); if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);} ctx.stroke();
+    const last=I.rsi[n-1]; if(last!=null){ ctx.beginPath(); ctx.fillStyle= last>=70?'#F04452':last<=30?'#3182F6':'#6B7684'; ctx.arc(X(vis-1),Y(last),3,0,7); ctx.fill(); }
+  }
+
+  drawMacd(I){
+    const s=this.setupCanvas(this.macdRef); if(!s) return; const {ctx,w,h}=s;
+    const n=I.n, vis=96, start=n-vis, padL=8,padR=30,padT=8,padB=8, pw=w-padL-padR, ph=h-padT-padB, step=pw/vis;
+    let mx=1e-6; for(let i=start;i<n;i++){ for(const a of [I.macd[i],I.sig[i],I.hist[i]]) if(a!=null) mx=Math.max(mx,Math.abs(a)); }
+    const Y=v=>padT+(1-(v/(mx*1.1)+1)/2)*ph, X=i=>padL+i*step+step/2;
+    const z=Y(0); ctx.strokeStyle='#E5E8EB'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,z); ctx.lineTo(w-padR,z); ctx.stroke();
+    const bw=Math.max(1.8,step*0.55);
+    for(let i=start;i<n;i++){ if(I.hist[i]==null)continue; const x=X(i-start),y=Y(I.hist[i]); ctx.fillStyle= I.hist[i]>=0?'rgba(240,68,82,.5)':'rgba(49,130,246,.5)'; ctx.fillRect(x-bw/2,Math.min(y,z),bw,Math.abs(y-z)); }
+    const ml=(arr,color,wd)=>{ ctx.beginPath(); ctx.lineWidth=wd; ctx.strokeStyle=color; let st=false; for(let i=start;i<n;i++){ if(arr[i]==null){st=false;continue;} const x=X(i-start),y=Y(arr[i]); if(!st){ctx.moveTo(x,y);st=true;}else ctx.lineTo(x,y);} ctx.stroke(); };
+    ml(I.macd,'#191F28',1.5); ml(I.sig,'#F5A623',1.4);
+  }
+
+  // ---------- actions ----------
+  onSearchKey=(e)=>{ if(e.key!=='Enter')return; const q=e.target.value.trim().toUpperCase(); if(!q)return;
+    let hit=null; for(const k in this.stocks){ const st=this.stocks[k]; if(k===q||st.ticker.toUpperCase()===q||st.ticker.split('.')[0]===q||st.name===e.target.value.trim()){ hit=k; break; } }
+    if(hit){ this.setState({ticker:hit}); e.target.value=''; e.target.blur(); }
+    else { e.target.style.color='#F04452'; setTimeout(()=>{e.target.style.color='#191F28';},900); }
+  }
+  toggleFav=()=>{ const t=this.state.ticker; let f=this.state.favorites.slice(); if(f.includes(t)) f=f.filter(x=>x!==t); else f.push(t); this.setState({favorites:f}); try{localStorage.setItem('tj_favs',JSON.stringify(f));}catch(e){} }
+  cycleSort=()=>this.setState(s=>({sortBy: s.sortBy==='grade'?'change':'grade'}));
+
+  // ---------- render ----------
+  renderVals(){
+    const st=this.stocks[this.state.ticker];
+    const favs=this.state.favorites;
+    const isFav=favs.includes(this.state.ticker);
+    const cur=this.state.ticker;
+
+    const favKeys=favs.filter(k=>this.stocks[k]);
+    favKeys.sort((a,b)=> this.state.sortBy==='grade'? this.stocks[b].ev.score-this.stocks[a].ev.score : this.stocks[b].change-this.stocks[a].change);
+    const rows=favKeys.map(key=>{ const x=this.stocks[key];
+      return { name:x.name, ticker:x.ticker, priceStr:this.priceStr(x.price,x.kr), changeStr:this.changeStr(x.change),
+        changeColor:this.semColor(x.change), trendArrow:this.trendArrow(x.trend.label), trendColor:this.trendColor(x.trend.label),
+        gradeShort:this.gradeShort(x.ev.grade), gradeColor:this.gradeColor(x.ev.grade), gradeBg:this.gradeBg(x.ev.grade),
+        rowBg: key===cur?'#F4F8FF':'transparent', open:()=>this.setState({ticker:key}) }; });
+
+    const dr=st.detail;
+    const detailRows=[
+      {label:'시가총액',value:dr.cap},{label:'섹터',value:dr.sec},{label:'PER',value:dr.per},{label:'PBR',value:dr.pbr},
+      {label:'배당수익률',value:dr.div},{label:'거래량',value:dr.vol},{label:'52주 최고',value:dr.hi},{label:'52주 최저',value:dr.lo},
+    ];
+
+    const signals=this.computeSignals(cur);
+    signals.forEach((s,i)=> s.line = i===signals.length-1?'transparent':'#F2F4F6');
+    const sum=signals.reduce((a,s)=>a+s.w,0);
+    let consensusLabel,consensusColor,consensusBg;
+    if(sum>=2){consensusLabel='매수 우위';consensusColor='#F04452';consensusBg='#FDECEE';}
+    else if(sum<=-2){consensusLabel='매도 우위';consensusColor='#3182F6';consensusBg='#EAF2FE';}
+    else {consensusLabel='혼조';consensusColor='#8B95A1';consensusBg='#F2F4F6';}
+
+    // MACD header state
+    const I=this.indicators(cur); const li=I.n-1; const hh=I.hist[li];
+    const macdState= hh>0?'골든 우위':hh<0?'데드 우위':'중립';
+    const macdColor= hh>0?'#F04452':hh<0?'#3182F6':'#8B95A1';
+
+    return {
+      s:{name:st.name, market:st.market, ticker:st.ticker},
+      favCount:favKeys.length, favRows:rows, sortLabel: this.state.sortBy==='grade'?'등급순':'등락순',
+      priceStr:this.priceStr(this.state.animPrice||st.price, st.kr),
+      changeStr:this.changeStr(st.change), changeColor:this.semColor(st.change),
+      grade:st.ev.grade, gradeColor:this.gradeColor(st.ev.grade), gradeScore:this.state.animScore, gradeDesc:this.gradeDesc(st.ev.grade),
+      trendLabel:st.trend.label, trendArrow:this.trendArrow(st.trend.label), trendColor:this.trendColor(st.trend.label),
+      confVal:st.trend.confidence, confPct:st.trend.confidence+'%',
+      timingAction:st.timing.action, timingColor: st.timing.score>=50?'#F04452':'#3182F6', timingVal:st.timing.score, timingPct:st.timing.score+'%',
+      buyStr:this.priceStr(st.ev.buy,st.kr), overheatStr:this.priceStr(st.ev.overheat,st.kr),
+      rsiVal:st.rsi.toFixed(1), rsiColor: st.rsi>=70?'#F04452':st.rsi<=30?'#3182F6':'#4E5968',
+      macdState, macdColor,
+      detailRows, signals, consensusLabel, consensusColor, consensusBg,
+      starChar: isFav?'★':'☆', starColor: isFav?'#3182F6':'#C8CDD3',
+      onSearchKey:this.onSearchKey, toggleFav:this.toggleFav, cycleSort:this.cycleSort,
+      mainRef:this.mainRef, rsiRef:this.rsiRef, macdRef:this.macdRef, scoreRef:this.scoreRef,
+    };
+  }
+}
+</script>
+</body>
+</html>

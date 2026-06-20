@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>투자판단</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    font-family:'Pretendard',system-ui,-apple-system,sans-serif;color:#191F28;
+    background:#E4E8ED;display:flex;align-items:flex-start;justify-content:center;
+    padding:28px;min-height:100vh}
+  .tjscroll::-webkit-scrollbar{width:8px;height:8px}
+  .tjscroll::-webkit-scrollbar-thumb{background:#D8DDE3;border-radius:4px}
+  .tjscroll::-webkit-scrollbar-track{background:transparent}
+  .row-hover:hover{background:#F2F4F6 !important}
+  button{font-family:inherit}
+  .tabnum{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div style="flex:none;width:1440px;height:920px;background:#F4F6F8;border-radius:16px;
+  box-shadow:0 24px 60px rgba(20,30,50,.16),0 4px 12px rgba(20,30,50,.05);overflow:hidden;
+  display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.05)">
+
+  <!-- ===== TOP BAR ===== -->
+  <div style="flex:none;height:62px;background:#fff;border-bottom:1px solid #ECEFF2;display:flex;align-items:center;padding:0 22px;gap:22px">
+    <div style="display:flex;align-items:center;gap:9px;flex:none">
+      <div style="width:26px;height:26px;border-radius:8px;background:#3182F6;display:flex;align-items:center;justify-content:center">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 11.5L6 7L9 9.5L14 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="4" r="1.6" fill="#fff"/></svg>
+      </div>
+      <span style="font-size:16px;font-weight:800;letter-spacing:-.4px">투자판단</span>
+    </div>
+    <div style="flex:1;max-width:440px;display:flex;align-items:center;gap:9px;background:#F2F4F6;border-radius:11px;padding:10px 14px">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex:none"><circle cx="7" cy="7" r="4.5" stroke="#8B95A1" stroke-width="1.6"/><line x1="10.6" y1="10.6" x2="14" y2="14" stroke="#8B95A1" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input id="search" placeholder="종목명 · 티커 검색  (예: NVDA, 005930, AAPL)" style="border:none;outline:none;background:transparent;font-family:inherit;font-size:14px;color:#191F28;width:100%" />
+    </div>
+    <div style="flex:1"></div>
+    <div id="conn" style="display:flex;align-items:center;gap:8px;flex:none;color:#8B95A1;font-size:12.5px;font-weight:500">
+      <span id="connDot" style="width:7px;height:7px;border-radius:50%;background:#15B47B;display:inline-block"></span><span id="connText">연결됨 · 일봉 기준</span>
+    </div>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <div style="flex:1;display:flex;min-height:0">
+
+    <!-- ===== SIDEBAR / WATCHLIST ===== -->
+    <div style="flex:none;width:312px;background:#fff;border-right:1px solid #ECEFF2;display:flex;flex-direction:column;min-height:0">
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.3px">관심 종목 <span id="favCount" style="color:#B0B8C1;font-weight:600">0</span></span>
+        <button id="sortBtn" style="border:none;background:#F2F4F6;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:600;color:#4E5968;display:flex;align-items:center;gap:5px">등급순 <span style="color:#8B95A1;font-size:9px">▾</span></button>
+      </div>
+      <div id="watchlist" class="tjscroll" style="flex:1;overflow-y:auto;padding:0 10px 14px"></div>
+      <div style="flex:none;padding:12px 18px;border-top:1px solid #F2F4F6;font-size:10.5px;line-height:1.55;color:#B0B8C1">등급은 추세·타이밍·지표 신호의 일치 정도이며 투자 권유가 아닙니다.</div>
+    </div>
+
+    <!-- ===== CENTER / CHARTS ===== -->
+    <div class="tjscroll" style="flex:1;overflow-y:auto;min-width:0;padding:22px 24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px">
+        <div>
+          <div style="display:flex;align-items:center;gap:9px">
+            <span id="stName" style="font-size:27px;font-weight:800;letter-spacing:-.6px;white-space:nowrap">—</span>
+            <span id="stMarket" style="font-size:11.5px;font-weight:600;color:#8B95A1;background:#fff;border:1px solid #E5E8EB;border-radius:7px;padding:3px 8px">—</span>
+            <button id="starBtn" style="border:none;background:transparent;cursor:pointer;font-size:21px;line-height:1;color:#C8CDD3;padding:2px 4px">☆</button>
+          </div>
+          <div id="stTicker" class="tabnum" style="font-size:13px;color:#8B95A1;margin-top:4px">—</div>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <span id="stPrice" class="tabnum" style="font-size:38px;font-weight:800;letter-spacing:-1.2px;line-height:1">—</span>
+          <span id="stChange" class="tabnum" style="font-size:18px;font-weight:700">—</span>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:18px;padding:20px 20px 16px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04);margin-bottom:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:16px;font-weight:700;letter-spacing:-.3px">가격 · 일목균형표 · 볼린저밴드</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center">
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:9px;border-radius:2px;background:rgba(240,68,82,.16);display:inline-block"></span>양운/음운</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px solid #9B6DE3;display:inline-block"></span>기준선</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px solid #F5A623;display:inline-block"></span>전환선</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:#8B95A1"><span style="width:14px;height:0;border-top:2px dashed #B0B8C1;display:inline-block"></span>볼린저</span>
+            <span style="font-size:11.5px;color:#B0B8C1;font-weight:500;padding-left:4px">일봉 · 1Y</span>
+          </div>
+        </div>
+        <canvas id="mainChart" style="display:block;width:100%;height:380px"></canvas>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div style="background:#fff;border-radius:18px;padding:18px 18px 14px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:14.5px;font-weight:700">RSI <span style="font-weight:500;color:#B0B8C1;font-size:12px">(14)</span></span>
+            <span id="rsiVal" class="tabnum" style="font-size:14px;font-weight:800;color:#4E5968">—</span>
+          </div>
+          <canvas id="rsiChart" style="display:block;width:100%;height:118px"></canvas>
+        </div>
+        <div style="background:#fff;border-radius:18px;padding:18px 18px 14px;box-shadow:0 1px 3px rgba(20,30,50,.04),0 8px 22px rgba(20,30,50,.04)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:14.5px;font-weight:700">MACD <span style="font-weight:500;color:#B0B8C1;font-size:12px">(12·26·9)</span></span>
+            <span id="macdState" class="tabnum" style="font-size:13px;font-weight:700;color:#8B95A1">—</span>
+          </div>
+          <canvas id="macdChart" style="display:block;width:100%;height:118px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT RAIL / ANALYSIS ===== -->
+    <div class="tjscroll" style="flex:none;width:372px;background:#fff;border-left:1px solid #ECEFF2;overflow-y:auto;padding:22px 22px 26px;display:flex;flex-direction:column;gap:16px;min-height:0">
+
+      <div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:14px;color:#4E5968">종합 평가</div>
+        <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px">
+          <div style="position:relative;flex:none;width:108px;height:108px">
+            <canvas id="scoreChart" style="display:block;width:108px;height:108px"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <span id="gradeScore" class="tabnum" style="font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1">—</span>
+              <span style="font-size:11px;color:#B0B8C1;font-weight:600;margin-top:1px">/ 100</span>
+            </div>
+          </div>
+          <div style="flex:1">
+            <span id="gradeBadge" style="display:inline-flex;align-items:center;background:#8B95A1;color:#fff;font-size:15px;font-weight:800;letter-spacing:-.2px;padding:8px 16px;border-radius:12px;white-space:nowrap">—</span>
+            <div id="gradeDesc" style="font-size:12.5px;color:#8B95A1;line-height:1.5;margin-top:12px"></div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:13px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <span style="font-size:13px;color:#4E5968;font-weight:500;white-space:nowrap">추세 <span id="trendLabel" style="font-weight:700">—</span></span>
+            <span id="confVal" class="tabnum" style="font-size:12.5px;font-weight:700;color:#4E5968">신뢰 —%</span>
+          </div>
+          <div style="height:7px;border-radius:4px;background:#F2F4F6;overflow:hidden"><div id="confBar" style="height:100%;border-radius:4px;background:#8B95A1;width:0%;transition:width .5s ease"></div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+            <span style="font-size:13px;color:#4E5968;font-weight:500;white-space:nowrap">타이밍 <span id="timingLabel" style="font-weight:700">—</span></span>
+            <span id="timingVal" class="tabnum" style="font-size:12.5px;font-weight:700;color:#4E5968">—%</span>
+          </div>
+          <div style="height:7px;border-radius:4px;background:#F2F4F6;overflow:hidden"><div id="timingBar" style="height:100%;border-radius:4px;background:#8B95A1;width:0%;transition:width .5s ease"></div></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;background:#FDECEE;border-radius:13px;padding:12px 14px">
+            <div style="font-size:11.5px;color:#F04452;font-weight:600;margin-bottom:4px">추천 전환 예상가</div>
+            <div id="buyZone" class="tabnum" style="font-size:16px;font-weight:800;color:#191F28">—</div>
+          </div>
+          <div style="flex:1;background:#EAF2FE;border-radius:13px;padding:12px 14px">
+            <div style="font-size:11.5px;color:#3182F6;font-weight:600;margin-bottom:4px">과열 경계 예상가</div>
+            <div id="overheatZone" class="tabnum" style="font-size:16px;font-weight:800;color:#191F28">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:#F2F4F6"></div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:14px;font-weight:700;letter-spacing:-.2px;color:#4E5968">지표 신호 요약</span>
+          <span id="consensus" style="font-size:11.5px;font-weight:700;color:#8B95A1;background:#F2F4F6;padding:3px 9px;border-radius:7px;white-space:nowrap">—</span>
+        </div>
+        <div id="signals" style="display:flex;flex-direction:column;gap:1px"></div>
+      </div>
+
+      <div style="height:1px;background:#F2F4F6"></div>
+
+      <div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:-.2px;margin-bottom:14px;color:#4E5968">상세 정보</div>
+        <div id="detail" style="display:grid;grid-template-columns:1fr 1fr;gap:16px 14px"></div>
+      </div>
+
+      <div style="font-size:10.5px;line-height:1.6;color:#B0B8C1;padding-top:4px">본 분석은 기술적 지표의 기계적 계산 결과이며, 투자 권유나 수익 보장이 아닙니다. 모든 판단과 책임은 본인에게 있습니다.</div>
+    </div>
+  </div>
+</div>
+<script src="./app.js"></script>
+</body>
+</html>
