@@ -13,6 +13,7 @@ const state = {
   animScore: 0,
   animPrice: 0,
   meta: { kr: false, change: 0 },
+  portfolio: [],    // [{ticker, avg_price, qty}] — localStorage 저장
 };
 
 // ── 포맷/색상 헬퍼 (설계도 §10.2 컬러 토큰) ───────────
@@ -45,6 +46,11 @@ async function fetchStock(q) {
 }
 async function fetchOhlc(q) {
   const r = await fetch(`${API}/api/stock/${encodeURIComponent(q)}/ohlc`);
+  if (!r.ok) throw new Error('not found');
+  return r.json();
+}
+async function fetchTimeframes(q) {
+  const r = await fetch(`${API}/api/stock/${encodeURIComponent(q)}/timeframes`);
   if (!r.ok) throw new Error('not found');
   return r.json();
 }
@@ -163,6 +169,37 @@ function animateNumbers(stock) {
   }, 24);
 }
 
+function tfCard(key, v) {
+  const card = document.createElement('div');
+  if (!v) {
+    card.style.cssText = 'background:#F8F9FB;border-radius:13px;padding:13px 14px;font-size:12px;color:#B0B8C1';
+    card.innerHTML = `<div style="font-size:12.5px;font-weight:700;color:#8B95A1;margin-bottom:8px">${key === 'long' ? '장기' : '단기'}</div>데이터 없음`;
+    return card;
+  }
+  card.style.cssText = `background:${gradeBg(v.grade)};border-radius:13px;padding:13px 14px`;
+  card.title = `최종 봉 ${v.last_bar}${v.source === 'synthetic' ? ' · 데모 데이터' : ''}`;
+  card.innerHTML = `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px">
+      <span style="font-size:12.5px;font-weight:700;color:#4E5968">${v.label}</span>
+      <span style="font-size:10.5px;color:#8B95A1">${v.interval_label}</span>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:9px">
+      <span style="font-size:15px;font-weight:800;color:${gradeColor(v.grade)};letter-spacing:-.2px">${v.grade}</span>
+      <span class="tabnum" style="font-size:12px;font-weight:700;color:${gradeColor(v.grade)}">${v.score}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;font-size:12px">
+      <div style="display:flex;justify-content:space-between"><span style="color:#8B95A1">추세</span><span style="font-weight:700;color:${trendColor(v.trend)}">${trendArrow(v.trend)} ${v.trend}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:#8B95A1">타이밍</span><span style="font-weight:700;color:#4E5968">${v.timing}</span></div>
+    </div>`;
+  return card;
+}
+
+function renderTimeframes(tf) {
+  const box = $('tfCompare'); box.innerHTML = '';
+  box.appendChild(tfCard('long', tf && tf.long));
+  box.appendChild(tfCard('short', tf && tf.short));
+}
+
 function renderStock(stock) {
   $('stName').textContent = stock.name;
   $('stMarket').textContent = stock.market;
@@ -177,13 +214,33 @@ function renderStock(stock) {
     $('connDot').style.background = '#15B47B'; $('connText').textContent = '실시간 연결됨 · 일봉 기준';
   }
 
+  // 데이터 갱신 시각 (yfinance에서 마지막으로 받아온 시각)
+  $('connTime').textContent = stock.updated_at ? `${stock.updated_at} 갱신` : '— 갱신';
+  $('connTime').title = stock.last_bar
+    ? `데이터를 마지막으로 받아온 시각 · 최종 봉 ${stock.last_bar}`
+    : '데이터를 마지막으로 받아온 시각';
+
   // 종합 평가
   const ev = stock.evaluation;
   $('gradeBadge').textContent = ev.grade;
   $('gradeBadge').style.background = gradeColor(ev.grade);
   $('gradeDesc').textContent = gradeDesc(ev.grade);
-  $('buyZone').textContent = priceStr(ev.buy_zone, stock.kr);
-  $('overheatZone').textContent = priceStr(ev.overheat_zone, stock.kr);
+
+  // 등급 전환 예상가 — 가격이 이 수준에 닿으면 종합 등급이 한 단계 바뀐다.
+  if (ev.up_price != null) {
+    $('upLabel').textContent = `상향 전환 → ${ev.up_grade}`;
+    $('upZone').textContent = priceStr(ev.up_price, stock.kr);
+  } else {
+    $('upLabel').textContent = '상향 전환가';
+    $('upZone').textContent = ev.grade === '강한 추천' ? '현재 최고 등급' : '—';
+  }
+  if (ev.down_price != null) {
+    $('downLabel').textContent = `하향 전환 → ${ev.down_grade}`;
+    $('downZone').textContent = priceStr(ev.down_price, stock.kr);
+  } else {
+    $('downLabel').textContent = '하향 전환가';
+    $('downZone').textContent = ev.grade === '강한 비추천' ? '현재 최저 등급' : '—';
+  }
 
   // 추세 게이지
   const tr = stock.trend;
@@ -286,13 +343,15 @@ async function renderWatchlist() {
 async function loadTicker(q) {
   state.ticker = q;
   try {
-    const [stock, ohlc] = await Promise.all([
+    const [stock, ohlc, tf] = await Promise.all([
       state.cache[q] ? Promise.resolve(state.cache[q]) : fetchStock(q),
       fetchOhlc(q),
+      fetchTimeframes(q).catch(() => null),
     ]);
     state.cache[q] = stock;
     state.meta = { kr: stock.kr, change: stock.change_pct };
     renderStock(stock);
+    renderTimeframes(tf);
     const I = buildI(ohlc); state._lastI = I;
     drawMain(I, state.meta); drawRsi(I); drawMacd(I);
     animateNumbers(stock);
@@ -310,9 +369,146 @@ function toggleFav() {
   updateStar(); renderWatchlist();
 }
 
+// ── 포트폴리오 모달 ────────────────────────────────────
+const pfActColor = k => ({ add: '#F04452', hold: '#8B95A1', trim: '#3182F6', reduce: '#3182F6', cut: '#1F63D6' }[k] || '#8B95A1');
+const pfActBg = k => ({ add: '#FDECEE', hold: '#F2F4F6', trim: '#EAF2FE', reduce: '#EAF2FE', cut: '#E4EDFC' }[k] || '#F2F4F6');
+const signedPct = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+const signedMoney = (v, kr) => (v >= 0 ? '+' : '-') + priceStr(Math.abs(v), kr);
+
+function pfRowEl(h) {
+  const row = document.createElement('div');
+  row.className = 'pf-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr .8fr 30px;gap:10px;align-items:center';
+  const inp = 'border:1px solid #E5E8EB;outline:none;background:#fff;border-radius:9px;padding:9px 11px;font-family:inherit;font-size:13.5px;color:#191F28;width:100%';
+  row.innerHTML =
+    `<input class="pf-ticker" placeholder="예: NVDA, 005930" value="${h && h.ticker ? h.ticker : ''}" style="${inp}">
+     <div style="display:flex;gap:5px;align-items:center">
+       <input class="pf-avg tabnum" type="number" min="0" step="any" placeholder="평단가" value="${h && h.avg_price ? h.avg_price : ''}" style="${inp};flex:1;min-width:0">
+       <select class="pf-cur" title="평단가 입력 통화" style="border:1px solid #E5E8EB;outline:none;background:#fff;border-radius:9px;padding:9px 4px;font-family:inherit;font-size:12.5px;color:#4E5968;flex:none;cursor:pointer">
+         <option value="USD">USD</option>
+         <option value="KRW">원</option>
+       </select>
+     </div>
+     <input class="pf-qty tabnum" type="number" min="0" step="any" placeholder="수량" value="${h && h.qty ? h.qty : ''}" style="${inp}">
+     <button class="pf-del" title="삭제" style="border:none;background:#F2F4F6;color:#8B95A1;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1">×</button>`;
+  // 평단가 입력 통화: 6자리 숫자=한국주 → 원화 고정. 그 외=해외주 → USD/원 선택(증권사 표기에 맞춰).
+  const tkInp = row.querySelector('.pf-ticker'), avgInp = row.querySelector('.pf-avg'), curSel = row.querySelector('.pf-cur');
+  if (h && h.currency) curSel.value = h.currency;
+  const syncCur = () => {
+    const isKr = /^\d{6}$/.test(tkInp.value.trim());
+    if (isKr) { curSel.value = 'KRW'; curSel.disabled = true; }
+    else curSel.disabled = false;
+    avgInp.placeholder = isKr ? '평단가 (원)' : '평단가';
+  };
+  tkInp.addEventListener('input', syncCur); syncCur();
+  row.querySelector('.pf-del').onclick = () => { readPfRows(); state.portfolio.splice([...$('pfRows').children].indexOf(row), 1); renderPfRows(); };
+  return row;
+}
+
+function renderPfRows() {
+  const box = $('pfRows'); box.innerHTML = '';
+  const list = state.portfolio.length ? state.portfolio : [null];
+  list.forEach(h => box.appendChild(pfRowEl(h)));
+}
+
+function readPfRows() {
+  state.portfolio = [...document.querySelectorAll('#pfRows .pf-row')].map(r => ({
+    ticker: r.querySelector('.pf-ticker').value.trim(),
+    avg_price: parseFloat(r.querySelector('.pf-avg').value),
+    qty: parseFloat(r.querySelector('.pf-qty').value),
+    currency: r.querySelector('.pf-cur').value,
+  }));
+}
+
+function openPf() {
+  renderPfRows();
+  $('pfResult').innerHTML = '';
+  $('pfOverlay').style.display = 'flex';
+}
+function closePf() { readPfRows(); savePf(); $('pfOverlay').style.display = 'none'; }
+function savePf() { try { localStorage.setItem('tj_portfolio', JSON.stringify(state.portfolio)); } catch (e) {} }
+
+async function analyzePf() {
+  readPfRows();
+  const holdings = state.portfolio.filter(h => h.ticker && h.avg_price > 0 && h.qty > 0);
+  if (!holdings.length) {
+    $('pfResult').innerHTML = `<div style="background:#FFF4E5;color:#B26A00;border-radius:12px;padding:14px 16px;font-size:13px;font-weight:600">종목·평단가·수량을 한 종목 이상 올바르게 입력해 주세요.</div>`;
+    return;
+  }
+  savePf();
+  const btn = $('pfAnalyze'); btn.disabled = true; btn.textContent = '분석 중…'; btn.style.background = '#A9C7F8';
+  $('pfResult').innerHTML = `<div style="text-align:center;color:#8B95A1;font-size:13px;padding:18px">보유 종목을 분석하고 있어요…</div>`;
+  try {
+    const r = await fetch(`${API}/api/portfolio`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ holdings }),
+    });
+    if (!r.ok) throw new Error('fail');
+    renderPfResult(await r.json());
+  } catch (e) {
+    $('pfResult').innerHTML = `<div style="background:#FDECEE;color:#C0303C;border-radius:12px;padding:14px 16px;font-size:13px;font-weight:600">분석에 실패했어요. 잠시 후 다시 시도해 주세요.</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '분석하기'; btn.style.background = '#3182F6';
+  }
+}
+
+function renderPfResult(data) {
+  const box = $('pfResult');
+  if (!data.holdings.length) {
+    box.innerHTML = `<div style="background:#fff;border-radius:14px;padding:18px;text-align:center;color:#8B95A1;font-size:13px">분석 가능한 종목이 없어요.</div>`;
+    return;
+  }
+  let html = '';
+
+  // 종합 코멘트
+  html += `<div style="background:#EAF2FE;border-radius:14px;padding:15px 17px;font-size:13.5px;font-weight:600;color:#1B64C9;margin-bottom:14px">💡 ${data.comment}</div>`;
+
+  // 통합 요약 (원화 기준 — 미국주는 환율 환산해 합산)
+  const sm = data.summary;
+  html += `<div style="background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(20,30,50,.04);margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:700;color:#4E5968">총 평가금액 · 원화 기준</span>
+      <span style="font-size:11px;font-weight:600;color:#8B95A1;background:#F2F4F6;padding:3px 8px;border-radius:6px">${sm.count}종목 · ${sm.concentration}</span>
+    </div>
+    <div class="tabnum" style="font-size:25px;font-weight:800;letter-spacing:-.5px">${priceStr(sm.value, true)}</div>
+    <div class="tabnum" style="font-size:12px;color:#8B95A1;margin-top:2px">매입 ${priceStr(sm.cost, true)}</div>
+    <div class="tabnum" style="font-size:14.5px;font-weight:700;margin-top:8px;color:${semColor(sm.pnl)}">${signedMoney(sm.pnl, true)} · ${signedPct(sm.return_pct)}</div>
+    <div style="font-size:11px;color:#B0B8C1;margin-top:9px">적용 환율 USD/KRW ${data.fx_rate.toLocaleString('en-US')}원${data.fx_live ? '' : ' · 오프라인 폴백'}</div>
+  </div>`;
+
+  // 종목별 카드
+  data.holdings.forEach(h => {
+    html += `<div style="background:#fff;border-radius:14px;padding:15px 17px;box-shadow:0 1px 3px rgba(20,30,50,.04);margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-size:15.5px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.name}</span>
+            <span style="flex:none;font-size:10.5px;font-weight:600;color:#8B95A1;background:#F2F4F6;border-radius:6px;padding:2px 7px">${h.market}</span>
+            <span style="flex:none;font-size:11px;font-weight:700;color:${gradeColor(h.grade)};background:${gradeBg(h.grade)};border-radius:6px;padding:2px 8px">${h.grade}</span>
+          </div>
+          <div class="tabnum" style="font-size:11.5px;color:#8B95A1;margin-top:3px">${h.qty}주 · 평단 ${priceStr(h.avg_price, h.kr)} → 현재 ${priceStr(h.price, h.kr)}</div>
+        </div>
+        <span style="flex:none;font-size:13.5px;font-weight:800;color:${pfActColor(h.action_kind)};background:${pfActBg(h.action_kind)};border-radius:9px;padding:8px 13px;white-space:nowrap">${h.action}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:11px">
+        <div><div style="font-size:11px;color:#8B95A1;margin-bottom:3px">평가금액</div><div class="tabnum" style="font-size:14px;font-weight:700">${priceStr(h.eval_amount, h.kr)}</div>${h.kr ? '' : `<div class="tabnum" style="font-size:10.5px;color:#B0B8C1;margin-top:1px">≈ ${priceStr(h.value_krw, true)}</div>`}</div>
+        <div><div style="font-size:11px;color:#8B95A1;margin-bottom:3px">평가손익</div><div class="tabnum" style="font-size:14px;font-weight:700;color:${semColor(h.pnl)}">${signedPct(h.return_pct)}</div></div>
+        <div><div style="font-size:11px;color:#8B95A1;margin-bottom:3px">비중</div><div class="tabnum" style="font-size:14px;font-weight:700">${Math.round(h.weight * 100)}%</div></div>
+      </div>
+      <div style="font-size:12px;color:#6B7684;background:#F8F9FB;border-radius:9px;padding:10px 12px;line-height:1.5">${h.reason}</div>
+    </div>`;
+  });
+
+  // 실패 종목
+  if (data.errors && data.errors.length) {
+    html += `<div style="background:#FFF4E5;color:#B26A00;border-radius:12px;padding:12px 15px;font-size:12.5px;margin-top:4px">분석하지 못한 종목: ${data.errors.map(e => e.ticker).join(', ')}</div>`;
+  }
+  box.innerHTML = html;
+}
+
 // ── 초기화 ─────────────────────────────────────────────
 function init() {
   try { const f = JSON.parse(localStorage.getItem('tj_favs')); if (Array.isArray(f) && f.length) state.favorites = f; } catch (e) {}
+  try { const p = JSON.parse(localStorage.getItem('tj_portfolio')); if (Array.isArray(p)) state.portfolio = p; } catch (e) {}
 
   $('search').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
@@ -323,6 +519,13 @@ function init() {
   $('starBtn').addEventListener('click', toggleFav);
   $('sortBtn').addEventListener('click', () => { state.sortBy = state.sortBy === 'grade' ? 'change' : 'grade'; renderWatchlist(); });
   window.addEventListener('resize', () => { if (state._lastI) { drawMain(state._lastI, state.meta); drawRsi(state._lastI); drawMacd(state._lastI); } });
+
+  // 포트폴리오 모달
+  $('pfBtn').addEventListener('click', openPf);
+  $('pfClose').addEventListener('click', closePf);
+  $('pfAdd').addEventListener('click', () => { readPfRows(); state.portfolio.push({ ticker: '', avg_price: '', qty: '', currency: 'USD' }); renderPfRows(); });
+  $('pfAnalyze').addEventListener('click', analyzePf);
+  $('pfOverlay').addEventListener('mousedown', e => { if (e.target === $('pfOverlay')) closePf(); });
 
   const first = state.favorites.includes('NVDA') ? 'NVDA' : state.favorites[0];
   loadTicker(first);

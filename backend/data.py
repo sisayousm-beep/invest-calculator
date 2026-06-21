@@ -13,6 +13,25 @@ import pandas as pd
 from . import config as C
 
 _cache: dict[str, tuple[float, dict]] = {}
+_fx_cache: tuple[float, float] | None = None  # (조회시각, USD→KRW 환율)
+
+
+def usdkrw_rate() -> tuple[float, bool]:
+    """USD→KRW 환율. 반환: (rate, is_live). 실패 시 폴백 상수(is_live=False)."""
+    global _fx_cache
+    if _fx_cache and time.time() - _fx_cache[0] < C.CACHE_TTL:
+        return _fx_cache[1], True
+    try:
+        import yfinance as yf
+
+        hist = yf.Ticker("KRW=X").history(period="5d", interval="1d")
+        if hist is not None and not hist.empty:
+            rate = float(hist["Close"].iloc[-1])
+            _fx_cache = (time.time(), rate)
+            return rate, True
+    except Exception:
+        pass
+    return C.FX_FALLBACK, False
 
 
 def normalize_candidates(raw: str) -> list[str]:
@@ -26,12 +45,12 @@ def normalize_candidates(raw: str) -> list[str]:
     return [t]
 
 
-def _from_yfinance(symbol: str):
+def _from_yfinance(symbol: str, period: str, interval: str):
     import yfinance as yf
 
     tk = yf.Ticker(symbol)
-    hist = tk.history(period=C.DATA_PERIOD, interval=C.DATA_INTERVAL, auto_adjust=False)
-    if hist is None or hist.empty or len(hist) < 60:
+    hist = tk.history(period=period, interval=interval, auto_adjust=False)
+    if hist is None or hist.empty or len(hist) < C.MIN_BARS:
         return None
     df = pd.DataFrame({
         "open": hist["Open"].astype(float),
@@ -71,29 +90,33 @@ def _synthetic(symbol: str):
     return df, {}
 
 
-def load(raw_ticker: str) -> dict:
+def load(raw_ticker: str, period: str = C.DATA_PERIOD, interval: str = C.DATA_INTERVAL) -> dict:
     """티커 1회 스냅샷 로드. 반환: {symbol, df, info, source}.
 
-    실패 시 ValueError. 캐시 TTL 내 동일 심볼은 캐시 반환.
+    실패 시 ValueError. 캐시 TTL 내 동일 (심볼·간격)은 캐시 반환.
+    간격(interval)이 다르면 다른 봉이므로 캐시 키를 분리한다.
     """
     candidates = normalize_candidates(raw_ticker)
     for symbol in candidates:
-        cached = _cache.get(symbol)
+        key = f"{symbol}@{interval}"
+        cached = _cache.get(key)
         if cached and time.time() - cached[0] < C.CACHE_TTL:
             return cached[1]
         try:
-            res = _from_yfinance(symbol)
+            res = _from_yfinance(symbol, period, interval)
         except Exception:
             res = None
         if res is not None:
             df, info = res
-            payload = {"symbol": symbol, "df": df, "info": info, "source": "live"}
-            _cache[symbol] = (time.time(), payload)
+            now = time.time()
+            payload = {"symbol": symbol, "df": df, "info": info, "source": "live", "fetched_at": now}
+            _cache[key] = (now, payload)
             return payload
 
     # 전 후보 실패 → 합성 폴백 (첫 후보 심볼명 유지)
     symbol = candidates[0]
     df, info = _synthetic(symbol)
-    payload = {"symbol": symbol, "df": df, "info": info, "source": "synthetic"}
-    _cache[symbol] = (time.time(), payload)
+    now = time.time()
+    payload = {"symbol": symbol, "df": df, "info": info, "source": "synthetic", "fetched_at": now}
+    _cache[f"{symbol}@{interval}"] = (now, payload)
     return payload
